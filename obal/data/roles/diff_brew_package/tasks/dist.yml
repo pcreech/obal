@@ -1,0 +1,47 @@
+- debug: 
+    msg: "{{ item.releasers | intersect(releasers) }}"
+
+- name: "Set branch checks"
+  set_fact:
+    "{{ item.name }}_branch_exists": "{{ true if item.releasers | intersect(releasers) else false }}"
+  tags:
+    - always
+
+- name: 'Look up current version of package in {{ build_package_koji_command }} for {{ item.dist }}'
+  shell: "{{ build_package_koji_command }} list-tagged --quiet \
+    {{ item.koji_tag }} \
+    {{ inventory_hostname }} \
+    | sort --reverse --key 1 --version-sort \
+    | head -n1 \
+    | cut -d' ' -f1"
+  register: "latest_brewed_{{ item.name }}"
+  changed_when: False
+  when: "hostvars[inventory_hostname][item.name + '_branch_exists'] | bool"
+  tags:
+    - always
+
+- name: 'Calculate {{ item.dist }} RPM version in local specfile'
+  command: "rpmspec --query '{{ spec_file_path }}' \
+    --define 'dist {{ item.dist }}' \
+    --define 'foremandist .{{ foremandist }}' \
+    {{ scl_prefix_option_str }} \
+    --queryformat='%{name}-%{version}-%{release}\n' \
+    --srpm"
+  register: "latest_local_{{ item.name }}"
+  changed_when: False
+  when: "hostvars[inventory_hostname][item.name + '_branch_exists'] | bool"
+  tags:
+    - always
+
+- name: "Set latest for brew and local"
+  set_fact:
+    "latest_brewed_{{ item.name }}": "{{ 'latest_brewed_' + item.name in hostvars[inventory_hostname] and hostvars[inventory_hostname]['latest_brewed_' + item.name].stdout | default('') }}"
+    "latest_local_{{ item.name }}":  "{{ 'latest_local_' + item.name in hostvars[inventory_hostname] and hostvars[inventory_hostname]['latest_local_' + item.name].stdout | default('') }}"
+  tags:
+    - always
+
+- name: "Compared local and brew package versions"
+  set_fact:
+    "{{ item.name }}_build_needed": "{{ hostvars[inventory_hostname]['latest_brewed_' + item.name] != hostvars[inventory_hostname]['latest_local_' + item.name] }}"
+  tags:
+    - always

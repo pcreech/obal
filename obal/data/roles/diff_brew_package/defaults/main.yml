@@ -1,0 +1,23 @@
+---
+diff_brew_pkg_dists:
+  - name: rhel5
+    dist: .el5
+    releasers: 
+      - puppet4-client-dist-git-rhel-5
+      - sattools-dist-git-rhel-5
+    koji_tag: satellite-{{ satellite_version }}-rhel-5-candidate
+  - name: rhel6
+    dist: .el6sat
+    releasers: 
+      - puppet4-client-dist-git-rhel-6
+      # - sattools-dist-git-rhel-6
+    koji_tag: satellite-{{ satellite_version }}-rhel-6-candidate
+  - name: rhel7
+    dist: .el7sat
+    releasers: 
+      - nonscl-dist-git-rhel-7
+      - puppet4-client-dist-git-rhel-7
+      - puppet4-dist-git-rhel-7
+      - sattools-dist-git-rhel-7
+      - scl-dist-git-rhel-7
+    koji_tag: satellite-{{ satellite_version }}-rhel-7-candidate
